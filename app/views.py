@@ -7,7 +7,7 @@ This file creates your application.
 import os
 from app import app
 from app.forms import UploadForm
-from flask import render_template, request, redirect, url_for, flash, session, abort
+from flask import render_template, request, redirect, url_for, flash, session, abort, send_from_directory
 from werkzeug.utils import secure_filename
 
 
@@ -39,9 +39,9 @@ def upload():
         photo=myform.photo.data
 
         # Get file data and save to your uploads folder
-        filename = secure_filename(photo.filename)
+        filename = secure_filename(photo.filename)      
         photo.save(os.path.join(
-            app.config['UPLOAD_FOLDER'], filename
+          app.config['UPLOAD_FOLDER'], filename
         ))
         flash('File Saved', 'success')
         return redirect(url_for('home'))
@@ -69,7 +69,32 @@ def logout():
     flash('You were logged out', 'success')
     return redirect(url_for('home'))
 
+def get_uploaded_images():
+    fileslist=[]
+    rootdir=os.getcwd()
+    #print("ROOT DIR  :"+ os.path.join(rootdir,app.config['UPLOAD_FOLDER']))
 
+    for subdir, dirs, files in os.walk(os.path.join(rootdir,app.config["UPLOAD_FOLDER"])):
+        for file in files:
+            #filepath=os.path.join(subdir,file) #has correct file path
+            #print(filepath)
+            name,ext=os.path.splitext(file)
+            if(ext in [".jpg",".png"]):
+                fileslist.append(file)
+    
+    return fileslist
+
+@app.route('/uploads/<filename>', methods=['GET'])
+def get_image(filename):
+    return send_from_directory(os.getcwd()+"/"+app.config['UPLOAD_FOLDER'],filename)
+
+@app.route('/files', methods=["GET"])
+def files():
+    if not session.get('logged_in'):
+        abort(401)
+    fileslist=get_uploaded_images()
+    length=len(fileslist)
+    return render_template('files.html',len = length,flist=fileslist)
 ###
 # The functions below should be applicable to all Flask apps.
 ###
